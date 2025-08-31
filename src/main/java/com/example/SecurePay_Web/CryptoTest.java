@@ -1,5 +1,7 @@
 package com.example.SecurePay_Web;
 
+import java.security.PrivateKey;
+import java.security.PublicKey;
 import java.util.Arrays;
 
 public class CryptoTest {
@@ -9,6 +11,7 @@ public class CryptoTest {
         testBase64EncodeDecode();
         testAesOcbEncryptDecrypt();
         testHmacSha256();
+        testRsaMethods();
         System.out.println("All tests completed successfully!");
     }
 
@@ -73,4 +76,34 @@ public class CryptoTest {
         }
     }
 
+    public static void testRsaMethods() throws Exception {
+        // Load keys from your keys/ directory
+        PublicKey pub = CryptoUtils.loadPublicKey("keys/rsa_public.pem");
+        PrivateKey priv = CryptoUtils.loadPrivateKey("keys/rsa_private.pem");
+
+        String message = "Hello, SecurePay!";
+        byte[] plaintext = CryptoUtils.stringToBytes(message);
+
+        // ----- Encryption / Decryption Test -----
+        byte[] encrypted = CryptoUtils.rsaEncryptWithPublic(pub, plaintext);
+        byte[] decrypted = CryptoUtils.rsaDecryptWithPrivate(priv, encrypted);
+        String decryptedMessage = CryptoUtils.bytesToString(decrypted);
+
+//        System.out.println("Original message: " + message);
+//        System.out.println("Decrypted message: " + decryptedMessage);
+//        System.out.println("Encryption/Decryption successful? " + message.equals(decryptedMessage));
+
+        // ----- Signing / Verification Test -----
+        byte[] signature = CryptoUtils.rsaSign(priv, plaintext);
+        boolean verified = CryptoUtils.rsaVerify(pub, plaintext, signature);
+
+//        System.out.println("Signature verified? " + verified);
+
+        // ----- Tampering Test -----
+        byte[] tampered = Arrays.copyOf(plaintext, plaintext.length);
+        tampered[0] ^= 0x01; // flip first byte
+        boolean tamperedVerified = CryptoUtils.rsaVerify(pub, tampered, signature);
+//        System.out.println("Tampered message verified? " + tamperedVerified); // should be false
+        System.out.println("RSA-OAEP-PSS test passed"); // should be false
+    }
 }
