@@ -8,6 +8,7 @@ public class CryptoTest {
         testStringByteConversion();
         testBase64EncodeDecode();
         testAesOcbEncryptDecrypt();
+        testHmacSha256();
         System.out.println("All tests completed successfully!");
     }
 
@@ -57,4 +58,19 @@ public class CryptoTest {
             System.out.println("AES-OCB encryption/decryption test passed");
         }
     }
+
+    private static void testHmacSha256() throws Exception {
+        byte[] secret = "supersecretkey".getBytes();
+        byte[] message = "This is a test".getBytes();
+
+        String mac = CryptoUtils.hmacSha256Base64(secret, message);
+        boolean valid = CryptoUtils.hmacSha256Verify(secret, message, mac);
+
+        if (!valid) {
+            throw new RuntimeException("HMAC verification failed");
+        } else {
+            System.out.println("HMAC-SHA256 test passed");
+        }
+    }
+
 }
