@@ -18,6 +18,8 @@ import java.security.spec.PKCS8EncodedKeySpec;
 import java.security.spec.X509EncodedKeySpec;
 import java.util.Base64;
 import java.io.IOException;
+import javax.crypto.Mac;
+import javax.crypto.spec.SecretKeySpec;
 
 public class CryptoUtils {
     static {
@@ -147,4 +149,44 @@ public class CryptoUtils {
         return new OcbResult(iv, ct);
     }
 
+    /**
+     * Compute HMAC-SHA256 of a message and return Base64-encoded MAC.
+     * @param secret secret key as byte array
+     * @param message message as byte array
+     * @return Base64-encoded HMAC
+     * @throws Exception
+     */
+    public static String hmacSha256Base64(byte[] secret, byte[] message) throws Exception {
+        SecretKeySpec keySpec = new SecretKeySpec(secret, "HmacSHA256");
+        Mac mac = Mac.getInstance("HmacSHA256");
+        mac.init(keySpec);
+        byte[] macBytes = mac.doFinal(message);
+        return Base64.getEncoder().encodeToString(macBytes);
+    }
+
+    /**
+     * Verify a Base64-encoded HMAC-SHA256 against a message and secret.
+     * @param secret secret key as byte array
+     * @param message message as byte array
+     * @param base64Mac Base64-encoded MAC to verify
+     * @return true if MAC matches, false otherwise
+     * @throws Exception
+     */
+    public static boolean hmacSha256Verify(byte[] secret, byte[] message, String base64Mac) throws Exception {
+        String expectedMac = hmacSha256Base64(secret, message);
+        // constant-time comparison to prevent timing attacks
+        return constantTimeEquals(Base64.getDecoder().decode(base64Mac), Base64.getDecoder().decode(expectedMac));
+    }
+
+    /**
+     * Constant-time comparison to avoid timing attacks
+     */
+    private static boolean constantTimeEquals(byte[] a, byte[] b) {
+        if (a.length != b.length) return false;
+        int result = 0;
+        for (int i = 0; i < a.length; i++) {
+            result |= a[i] ^ b[i];
+        }
+        return result == 0;
+    }
 }
