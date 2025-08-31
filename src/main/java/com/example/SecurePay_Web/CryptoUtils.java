@@ -1,17 +1,29 @@
 package com.example.SecurePay_Web;
 
-import java.io.IOException;
+import org.bouncycastle.jcajce.spec.AEADParameterSpec;
+import org.bouncycastle.jce.provider.BouncyCastleProvider;
+
+import javax.crypto.Cipher;
+import javax.crypto.spec.SecretKeySpec;
+import javax.crypto.AEADBadTagException;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Paths;
 import java.security.KeyFactory;
 import java.security.PrivateKey;
 import java.security.PublicKey;
+import java.security.SecureRandom;
+import java.security.Security;
 import java.security.spec.PKCS8EncodedKeySpec;
 import java.security.spec.X509EncodedKeySpec;
 import java.util.Base64;
+import java.io.IOException;
 
 public class CryptoUtils {
+    static {
+        // Register BouncyCastle provider once
+        Security.addProvider(new BouncyCastleProvider());
+    }
 
     // ---------- String <-> byte[] ----------
     public static byte[] stringToBytes(String data_str) {
@@ -62,4 +74,77 @@ public class CryptoUtils {
         String base64Key = new String(Files.readAllBytes(Paths.get(filePath)), StandardCharsets.UTF_8);
         return Base64.getDecoder().decode(base64Key.trim());
     }
+
+
+    // ---------- OCB helpers ----------
+    // recommended IV/nonce length for OCB: 12..15 bytes (we'll use 12 by default)
+    public static byte[] generateOcbIv(int lengthBytes) {
+        if (lengthBytes < 1 || lengthBytes > 15) {
+            throw new IllegalArgumentException("OCB nonce length must be between 1 and 15");
+        }
+        byte[] iv = new byte[lengthBytes];
+        new SecureRandom().nextBytes(iv);
+        return iv;
+    }
+
+    /**
+     * Encrypt with AES/OCB/NoPadding using BouncyCastle provider.
+     * @param key  AES key (16/24/32 bytes)
+     * @param iv   nonce/iv (1..15 bytes recommended 12)
+     * @param plaintext raw plaintext bytes
+     * @return ciphertext (ciphertext || tag) as raw bytes
+     */
+    public static byte[] aesOcbEncrypt(byte[] key, byte[] iv, byte[] plaintext) throws Exception {
+        if (key == null || (key.length != 16 && key.length != 24 && key.length != 32)) {
+            throw new IllegalArgumentException("AES key must be 16, 24 or 32 bytes");
+        }
+        SecretKeySpec keySpec = new SecretKeySpec(key, "AES");
+        // tag length: 128 bits (16 bytes)
+        AEADParameterSpec aeadSpec = new AEADParameterSpec(iv, 128);
+        Cipher cipher = Cipher.getInstance("AES/OCB/NoPadding", "BC");
+        cipher.init(Cipher.ENCRYPT_MODE, keySpec, aeadSpec);
+        // If you have associated data: cipher.updateAAD(aad);
+        return cipher.doFinal(plaintext); // returns ciphertext||tag
+    }
+
+    /**
+     * Decrypt AES/OCB ciphertext.
+     * @param key AES key
+     * @param iv  nonce/iv used for encryption
+     * @param ciphertext ciphertext with tag appended
+     * @return decrypted plaintext bytes
+     * @throws AEADBadTagException if authentication fails (tampering)
+     */
+    public static byte[] aesOcbDecrypt(byte[] key, byte[] iv, byte[] ciphertext) throws Exception {
+        if (key == null || (key.length != 16 && key.length != 24 && key.length != 32)) {
+            throw new IllegalArgumentException("AES key must be 16, 24 or 32 bytes");
+        }
+        SecretKeySpec keySpec = new SecretKeySpec(key, "AES");
+        AEADParameterSpec aeadSpec = new AEADParameterSpec(iv, 128);
+        Cipher cipher = Cipher.getInstance("AES/OCB/NoPadding", "BC");
+        cipher.init(Cipher.DECRYPT_MODE, keySpec, aeadSpec);
+        // If you used associated data during encrypt: cipher.updateAAD(aad);
+        return cipher.doFinal(ciphertext);
+    }
+
+    // Small convenience wrapper to return iv + ciphertext together
+    public static class OcbResult {
+        public final byte[] iv;
+        public final byte[] ciphertext;
+
+        public OcbResult(byte[] iv, byte[] ciphertext) {
+            this.iv = iv;
+            this.ciphertext = ciphertext;
+        }
+    }
+
+    /**
+     * Convenience: encrypt with a freshly-generated 12-byte IV (recommended).
+     */
+    public static OcbResult encryptWithRandomIv(byte[] aesKey, byte[] plaintext) throws Exception {
+        byte[] iv = generateOcbIv(12);
+        byte[] ct = aesOcbEncrypt(aesKey, iv, plaintext);
+        return new OcbResult(iv, ct);
+    }
+
 }

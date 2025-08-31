@@ -28,6 +28,9 @@ dependencies {
 	runtimeOnly("org.postgresql:postgresql")
 	testImplementation("org.springframework.boot:spring-boot-starter-test")
 	testRuntimeOnly("org.junit.platform:junit-platform-launcher")
+
+	//cryptographic tools
+	implementation("org.bouncycastle:bcprov-jdk15to18:1.81")
 }
 
 tasks.withType<Test> {
