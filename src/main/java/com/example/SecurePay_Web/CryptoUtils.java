@@ -15,11 +15,20 @@ import java.security.PublicKey;
 import java.security.SecureRandom;
 import java.security.Security;
 import java.security.spec.PKCS8EncodedKeySpec;
+import java.security.spec.PSSParameterSpec;
 import java.security.spec.X509EncodedKeySpec;
 import java.util.Base64;
 import java.io.IOException;
 import javax.crypto.Mac;
 import javax.crypto.spec.SecretKeySpec;
+import java.security.Signature;
+import java.security.spec.MGF1ParameterSpec;
+import javax.crypto.Cipher;
+import javax.crypto.spec.OAEPParameterSpec;
+import javax.crypto.spec.PSource;
+import java.security.interfaces.RSAPrivateKey;
+import java.security.interfaces.RSAPublicKey;
+
 
 public class CryptoUtils {
     static {
@@ -189,4 +198,57 @@ public class CryptoUtils {
         }
         return result == 0;
     }
+
+    /**
+     * Encrypt data with RSA public key using OAEP with SHA-256
+     */
+    public static byte[] rsaEncryptWithPublic(PublicKey key, byte[] data) throws Exception {
+        Cipher cipher = Cipher.getInstance("RSA/ECB/OAEPWithSHA-256AndMGF1Padding");
+        OAEPParameterSpec oaepParams = new OAEPParameterSpec(
+                "SHA-256",
+                "MGF1",
+                MGF1ParameterSpec.SHA256,
+                PSource.PSpecified.DEFAULT
+        );
+        cipher.init(Cipher.ENCRYPT_MODE, key, oaepParams);
+        return cipher.doFinal(data);
+    }
+
+    /**
+     * Decrypt RSA-encrypted data with private key using OAEP
+     */
+    public static byte[] rsaDecryptWithPrivate(PrivateKey key, byte[] data) throws Exception {
+        Cipher cipher = Cipher.getInstance("RSA/ECB/OAEPWithSHA-256AndMGF1Padding");
+        OAEPParameterSpec oaepParams = new OAEPParameterSpec(
+                "SHA-256",
+                "MGF1",
+                MGF1ParameterSpec.SHA256,
+                PSource.PSpecified.DEFAULT
+        );
+        cipher.init(Cipher.DECRYPT_MODE, key, oaepParams);
+        return cipher.doFinal(data);
+    }
+
+    /**
+     * Sign a message with RSA private key using PSS (SHA-256)
+     */
+    public static byte[] rsaSign(PrivateKey key, byte[] message) throws Exception {
+        Signature signature = Signature.getInstance("SHA256withRSA/PSS");
+        signature.setParameter(new PSSParameterSpec("SHA-256", "MGF1", MGF1ParameterSpec.SHA256, 32, 1));
+        signature.initSign(key);
+        signature.update(message);
+        return signature.sign();
+    }
+
+    /**
+     * Verify an RSA PSS signature with the corresponding public key
+     */
+    public static boolean rsaVerify(PublicKey key, byte[] message, byte[] sig) throws Exception {
+        Signature signature = Signature.getInstance("SHA256withRSA/PSS");
+        signature.setParameter(new PSSParameterSpec("SHA-256", "MGF1", MGF1ParameterSpec.SHA256, 32, 1));
+        signature.initVerify(key);
+        signature.update(message);
+        return signature.verify(sig);
+    }
+
 }
