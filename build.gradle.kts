@@ -31,6 +31,8 @@ dependencies {
 
 	//cryptographic tools
 	implementation("org.bouncycastle:bcprov-jdk15to18:1.81")
+	//for hashing passwords
+	implementation("org.springframework.security:spring-security-crypto:6.2.2")
 }
 
 tasks.withType<Test> {
