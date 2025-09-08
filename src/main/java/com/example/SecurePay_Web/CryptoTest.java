@@ -1,5 +1,7 @@
 package com.example.SecurePay_Web;
 
+import com.example.SecurePay_Web.Utils.CryptoUtils;
+
 import java.security.PrivateKey;
 import java.security.PublicKey;
 import java.util.Arrays;
@@ -49,7 +51,7 @@ public class CryptoTest {
         byte[] plaintext = CryptoUtils.stringToBytes(plaintextStr);
 
         // Encrypt
-        CryptoUtils.OcbResult result = CryptoUtils.encryptWithRandomIv(aesKey, plaintext);
+        CryptoUtils.OcbResult result = CryptoUtils.aesOcbEncryptWithRandomIV(aesKey, plaintext);
 
         // Decrypt
         byte[] decrypted = CryptoUtils.aesOcbDecrypt(aesKey, result.iv, result.ciphertext);
@@ -78,8 +80,8 @@ public class CryptoTest {
 
     public static void testRsaMethods() throws Exception {
         // Load keys from your keys/ directory
-        PublicKey pub = CryptoUtils.loadPublicKey("keys/rsa_public.pem");
-        PrivateKey priv = CryptoUtils.loadPrivateKey("keys/rsa_private.pem");
+        PublicKey pub = CryptoUtils.loadPublicKeyFromFs("keys/rsa_public.pem");
+        PrivateKey priv = CryptoUtils.loadPrivateKeyFromFs("keys/rsa_private.pem");
 
         String message = "Hello, SecurePay!";
         byte[] plaintext = CryptoUtils.stringToBytes(message);

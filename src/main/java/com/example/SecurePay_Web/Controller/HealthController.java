@@ -1,4 +1,4 @@
-package com.example.SecurePay_Web;
+package com.example.SecurePay_Web.Controller;
 
 import org.springframework.web.bind.annotation.*;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -18,8 +18,10 @@ public class HealthController {
     @GetMapping("/health")
     public Map<String, String> healthCheck() {
         Map<String, String> response = new HashMap<>();
+        // backend connected
         response.put("status", "OK");
 
+        // database status
         try (Connection conn = dataSource.getConnection()) {
             if (conn.isValid(1)) {
                 response.put("db", "Connected");

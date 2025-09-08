@@ -1,4 +1,4 @@
-package com.example.SecurePay_Web;
+package com.example.SecurePay_Web.Entity;
 
 import jakarta.persistence.*;
 import java.time.LocalDateTime;

@@ -1,10 +1,11 @@
-package com.example.SecurePay_Web;
+package com.example.SecurePay_Web.Controller;
 
+import com.example.SecurePay_Web.Entity.Merchant;
+import com.example.SecurePay_Web.Repository.MerchantRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
-import org.springframework.security.crypto.bcrypt.BCrypt;
 
 @RestController
 @RequestMapping("/api/merchants")

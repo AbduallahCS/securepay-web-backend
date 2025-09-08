@@ -1,4 +1,4 @@
-package com.example.SecurePay_Web;
+package com.example.SecurePay_Web.Utils;
 
 import org.bouncycastle.jcajce.spec.AEADParameterSpec;
 import org.bouncycastle.jce.provider.BouncyCastleProvider;
@@ -20,14 +20,10 @@ import java.security.spec.X509EncodedKeySpec;
 import java.util.Base64;
 import java.io.IOException;
 import javax.crypto.Mac;
-import javax.crypto.spec.SecretKeySpec;
 import java.security.Signature;
 import java.security.spec.MGF1ParameterSpec;
-import javax.crypto.Cipher;
 import javax.crypto.spec.OAEPParameterSpec;
 import javax.crypto.spec.PSource;
-import java.security.interfaces.RSAPrivateKey;
-import java.security.interfaces.RSAPublicKey;
 
 
 public class CryptoUtils {
@@ -54,31 +50,42 @@ public class CryptoUtils {
         return Base64.getDecoder().decode(data);
     }
 
-    // ---------- Load PEM Public Key ----------
-    public static PublicKey loadPublicKey(String pemFilePath) throws Exception {
-        String keyPem = new String(Files.readAllBytes(Paths.get(pemFilePath)), StandardCharsets.UTF_8);
-        keyPem = keyPem.replace("-----BEGIN PUBLIC KEY-----", "")
-                .replace("-----END PUBLIC KEY-----", "")
-                .replaceAll("\\s+", ""); // remove newlines/spaces
 
-        byte[] keyBytes = Base64.getDecoder().decode(keyPem);
-        X509EncodedKeySpec spec = new X509EncodedKeySpec(keyBytes);
-        KeyFactory factory = KeyFactory.getInstance("RSA");
-        return factory.generatePublic(spec);
+
+    public static PrivateKey loadPrivateKeyFromFs(String filePath) throws Exception {
+        try {
+            String keyPem = new String(Files.readAllBytes(Paths.get(filePath)), StandardCharsets.UTF_8)
+                    .replace("-----BEGIN PRIVATE KEY-----", "")
+                    .replace("-----END PRIVATE KEY-----", "")
+                    .replaceAll("\\s+", "");
+            byte[] keyBytes = Base64.getDecoder().decode(keyPem);
+            PKCS8EncodedKeySpec spec = new PKCS8EncodedKeySpec(keyBytes);
+            KeyFactory factory = KeyFactory.getInstance("RSA");
+            return factory.generatePrivate(spec);
+        } catch (Exception e) {
+            throw new Exception("Failed to load private key from filesystem: " + filePath, e);
+        }
     }
 
-    // ---------- Load PEM Private Key ----------
-    public static PrivateKey loadPrivateKey(String pemFilePath) throws Exception {
-        String keyPem = new String(Files.readAllBytes(Paths.get(pemFilePath)), StandardCharsets.UTF_8);
-        keyPem = keyPem.replace("-----BEGIN PRIVATE KEY-----", "")
-                .replace("-----END PRIVATE KEY-----", "")
-                .replaceAll("\\s+", "");
+    public static PublicKey loadPublicKeyFromFs(String pemFilePath) throws Exception {
+        try {
+            byte[] pemBytes = Files.readAllBytes(Paths.get(pemFilePath));
+            String keyPem = new String(pemBytes, StandardCharsets.UTF_8)
+                    .replace("-----BEGIN PUBLIC KEY-----", "")
+                    .replace("-----END PUBLIC KEY-----", "")
+                    .replaceAll("\\s+", "");
 
-        byte[] keyBytes = Base64.getDecoder().decode(keyPem);
-        PKCS8EncodedKeySpec spec = new PKCS8EncodedKeySpec(keyBytes);
-        KeyFactory factory = KeyFactory.getInstance("RSA");
-        return factory.generatePrivate(spec);
+            byte[] decoded = Base64.getDecoder().decode(keyPem);
+            X509EncodedKeySpec spec = new X509EncodedKeySpec(decoded);
+            KeyFactory factory = KeyFactory.getInstance("RSA");
+            return factory.generatePublic(spec);
+        } catch (Exception e) {
+            throw new Exception("Failed to load public key from " + pemFilePath + ": " + e.getMessage(), e);
+        }
     }
+
+
+
 
     // ---------- Read Base64-encoded AES key ----------
     public static byte[] loadAesKey(String filePath) throws IOException {
@@ -152,7 +159,7 @@ public class CryptoUtils {
     /**
      * Convenience: encrypt with a freshly-generated 12-byte IV (recommended).
      */
-    public static OcbResult encryptWithRandomIv(byte[] aesKey, byte[] plaintext) throws Exception {
+    public static OcbResult aesOcbEncryptWithRandomIV(byte[] aesKey, byte[] plaintext) throws Exception {
         byte[] iv = generateOcbIv(12);
         byte[] ct = aesOcbEncrypt(aesKey, iv, plaintext);
         return new OcbResult(iv, ct);

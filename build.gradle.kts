@@ -33,6 +33,8 @@ dependencies {
 	implementation("org.bouncycastle:bcprov-jdk15to18:1.81")
 	//for hashing passwords
 	implementation("org.springframework.security:spring-security-crypto:6.2.2")
+	//for json
+	implementation("com.fasterxml.jackson.core:jackson-databind:2.15.2")
 }
 
 tasks.withType<Test> {
